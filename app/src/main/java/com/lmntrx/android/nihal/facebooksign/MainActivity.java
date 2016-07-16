@@ -23,6 +23,8 @@ import com.facebook.login.widget.ProfilePictureView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Arrays;
+
 public class MainActivity extends AppCompatActivity {
 
     CallbackManager callbackManager;
@@ -35,10 +37,12 @@ public class MainActivity extends AppCompatActivity {
         callbackManager = CallbackManager.Factory.create();
         setContentView(R.layout.activity_main);
         LoginButton loginButton = (LoginButton) findViewById(R.id.loginButton);
-        loginButton.setReadPermissions("email");
+        //loginButton.setReadPermissions("email");
         //loginButton.setReadPermissions("user_friends");
         //loginButton.setReadPermissions("public_profile");
        // loginButton.setReadPermissions("user_birthday");
+        loginButton.setReadPermissions(Arrays.asList(
+                "public_profile", "email", "user_birthday", "user_friends"));
         loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
@@ -53,7 +57,43 @@ public class MainActivity extends AppCompatActivity {
                 ProfilePictureView picture=(ProfilePictureView)findViewById(R.id.profilePicView);
                 picture.setProfileId(Profile.getCurrentProfile().getId());
                 TextView text=(TextView)findViewById(R.id.textView);
-                text.setText(myProfile.getName());
+                try {
+                    text.setText(myProfile.getName());
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+
+                GraphRequest request = GraphRequest.newMeRequest(
+                        loginResult.getAccessToken(),
+                        new GraphRequest.GraphJSONObjectCallback() {
+                            @Override
+                            public void onCompleted(JSONObject object, GraphResponse response) {
+                                Log.v("LoginActivity", response.toString());
+
+                                // Application code
+                                try {
+                                    String email = object.getString("email");
+                                    TextView textView2=(TextView)findViewById(R.id.textView2);
+                                    textView2.setText(email);
+                                    String birthday = object.getString("birthday"); // 01/31/1980 format
+                                    TextView textView3=(TextView)findViewById(R.id.textView3);
+                                    textView3.setText(birthday);
+                                    String gender=object.getString("gender");
+                                    TextView textView4=(TextView)findViewById(R.id.textView4);
+                                    textView4.setText(gender);
+                                }
+                                catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        });
+                Bundle parameters = new Bundle();
+                parameters.putString("fields", "id,name,email,gender,birthday");
+                request.setParameters(parameters);
+                request.executeAsync();
             }
 
             @Override
